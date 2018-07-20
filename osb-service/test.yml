@@ -1,0 +1,68 @@
+---
+director_uuid: "9b61cd26-8e25-4272-b45d-340eaaf47f08"
+name: "new"
+releases:
+- name: "mongodb3"
+update:
+  canaries: 1
+  canary_watch_time: "15000-30000"
+  update_watch_time: "15000-30000"
+  max_in_flight: 1
+jobs:
+- name: "mongodb3"
+  persistent_disk: "10_240"
+  instances: 1
+  resource_pool: "mongodb3"
+  templates:
+  - name: "mongodb3"
+    release: "mongodb3"
+  - name: "node-exporter"
+  - name: "mongodb-exporter"
+  networks:
+  - name: "default"
+    subnets: []
+- name: "create-admin-user"
+  persistent_disk: "10_240"
+  instances: 1
+  resource_pool: "mongodb3"
+  templates:
+  - name: "create-admin-user"
+    release: "mongodb3"
+  networks:
+  - name: "default"
+    subnets: []
+networks:
+- name: "compile"
+  subnets:
+  - cloud_properties:
+      name: "VM Network"
+    dns:
+    - "10.254.174.10"
+    - "10.104.128.235"
+    gateway: "10.241.143.1"
+    range: "10.241.143.0/24"
+    reserved: []
+    static_ips:
+    - "10.241.143.44"
+- name: "default"
+  subnets:
+  - dns: []
+    range: "10.244.0.0/28"
+    reserved:
+    - "10.244.0.1"
+    static_ips: []
+resource_pools:
+- name: "mongodb3"
+  network: "default"
+  stemcell:
+    name: "bosh-warden-boshlite-ubuntu-trusty-go_agent"
+    version: "latest"
+  cloud_properties:
+    cpu: 2
+    datacenters:
+    - clusters:
+      - cf_z10:
+          resource_pool: "lynn"
+      name: "demohop"
+    disk: 10480
+    ram: 4096
