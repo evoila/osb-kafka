@@ -1,0 +1,12 @@
+[submodule "osb-core"]
+	path = osb-core
+	url = https://github.com/evoila/osb-core.git
+[submodule "osb-backup-core"]
+	path = osb-backup-core
+	url = https://github.com/evoila/osb-backup-core.git
+[submodule "osb-dashboard"]
+	path = osb-dashboard
+	url = https://github.com/evoila/osb-dashboard.git
+[submodule "osb-deployment"]
+	path = osb-deployment
+	url = https://github.com/evoila/osb-deployment.git
