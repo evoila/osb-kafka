@@ -10,3 +10,6 @@
 [submodule "osb-deployment"]
 	path = osb-deployment
 	url = https://github.com/evoila/osb-deployment.git
+[submodule "osb-persistence"]
+	path = osb-persistence
+	url = https://github.com/evoila/osb-persistence.git
