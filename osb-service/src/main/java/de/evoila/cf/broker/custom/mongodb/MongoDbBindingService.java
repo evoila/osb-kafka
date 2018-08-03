@@ -38,7 +38,7 @@ public class MongoDbBindingService extends BindingServiceImpl {
     private MongoDBCustomImplementation mongoDBCustomImplementation;
 
     @Override
-    protected void deleteBinding(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
+    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
         MongoDbService mongoDbService = mongoDBCustomImplementation.connection(serviceInstance, plan);
 
         mongoDbService.mongoClient().getDatabase(binding.getCredentials().get(DATABASE).toString())

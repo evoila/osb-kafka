@@ -16,7 +16,7 @@ public class MongoDBDeploymentManager extends DeploymentManager {
     public static final String REPLICA_SET_NAME = "replica-set-name";
 
     MongoDBDeploymentManager(BoshProperties boshProperties){
-        super(boshProperties);
+        super(boshProperties, null);
     }
 
     @Override
