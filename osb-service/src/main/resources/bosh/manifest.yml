@@ -24,7 +24,8 @@ instance_groups:
   vm_type: small
   stemcell: default
   persistent_disk: 10240
-  networks: [{name: default}]
+  networks:
+  - name: default
   jobs:
   - name: kafka
     release: osb-bosh-kafka
@@ -39,7 +40,8 @@ instance_groups:
   vm_type: small
   stemcell: default
   persistent_disk: 10240
-  networks: [{name: default}]
+  networks: 
+  - name: default
   jobs:
   - name: zookeeper
     release: osb-bosh-kafka
