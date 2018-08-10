@@ -20,6 +20,7 @@
         <module>osb-dashboard</module>
         <module>osb-core</module>
         <module>osb-deployment</module>
+        <module>osb-persistence</module>
         <module>osb-service</module>
     </modules>
 
