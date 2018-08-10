@@ -26,8 +26,6 @@ public class Application {
     @Bean(name = "customProperties")
 	public Map<String, String> customProperties() {
 		Map<String, String> customProperties = new HashMap<String, String>();
-		customProperties.put("database_name", "admin");
-
 		return customProperties;
 	}
 	
