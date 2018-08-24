@@ -10,12 +10,9 @@ import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MongoDBDeploymentManager extends DeploymentManager {
+public class KafkaDeploymentManager extends DeploymentManager {
 
-    public static final String DATA_PATH = "data_path";
-    public static final String REPLICA_SET_NAME = "replica-set-name";
-
-    MongoDBDeploymentManager(BoshProperties boshProperties){
+    KafkaDeploymentManager(BoshProperties boshProperties){
         super(boshProperties, null);
     }
 

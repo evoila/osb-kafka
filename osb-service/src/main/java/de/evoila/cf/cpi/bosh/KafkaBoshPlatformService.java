@@ -25,14 +25,13 @@ import rx.Observable;
 @ConditionalOnBean(BoshProperties.class)
 public class KafkaBoshPlatformService extends BoshPlatformService {
 
-    private static final int KAFKA_PORT = 9092;
-    private static final int ZOOKEEPER_PORT = 2181;
+    public static final int KAFKA_PORT = 9092;
+    public static final int ZOOKEEPER_PORT = 2181;
     private static final String KAFKA_JOB_NAME = "osb-bosh-kafka";
-    ;
 
 
     KafkaBoshPlatformService(PlatformRepository repository, CatalogService catalogService, ServicePortAvailabilityVerifier availabilityVerifier, BoshProperties boshProperties, Optional<DashboardClient> dashboardClient) {
-        super(repository, catalogService, availabilityVerifier, boshProperties, dashboardClient, new MongoDBDeploymentManager(boshProperties));
+        super(repository, catalogService, availabilityVerifier, boshProperties, dashboardClient, new KafkaDeploymentManager(boshProperties));
     }
 
     public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
