@@ -27,6 +27,8 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     private static String KAFKA_BROKERS = "brokers";
     private static String ZOOKEEPER_BROKERS = "zkNodes";
+    private static String DEFAULT_BROKER_PORT = "defaultBrokerPort";
+    private static String DEFAULT_ZK_PORT = "defaultZkPort";
 
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
@@ -70,7 +72,9 @@ public class KafkaBindingService extends BindingServiceImpl {
         });
 
         credentials.put(KAFKA_BROKERS, brokers);
+        credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT);
         credentials.put(ZOOKEEPER_BROKERS, zookeepers);
+        credentials.put(DEFAULT_ZK_PORT, KafkaBoshPlatformService.ZOOKEEPER_PORT);
 
         return credentials;
     }
