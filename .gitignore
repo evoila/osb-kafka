@@ -34,3 +34,5 @@ osb-service/osb-mongodb.iml
 osb-service/src/main/resources/static/
 osb-service/src/main/resources/templates/
 osb-service/osb-kafka.iml
+
+osb-service/src/main/resources/application-local\.yml
