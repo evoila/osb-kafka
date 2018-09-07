@@ -3,7 +3,7 @@ spring:
   profiles: cloud
   ### General Information ###
   application:
-      name: cf-service-broker-mongodb
+      name: cf-service-broker-kafka
   ### Security ###
   ssl:
     acceptselfsigned: true
@@ -35,7 +35,7 @@ server:
 
 ### Logging ###
 logging:
-  file: ${LOG_FILE:cf-service-broker-mongodb.log}
+  file: ${LOG_FILE:cf-service-broker-kafka.log}
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
 
