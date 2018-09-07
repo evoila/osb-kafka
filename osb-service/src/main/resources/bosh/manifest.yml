@@ -3,9 +3,6 @@ name: osb-bosh-kafka
 releases:
 - name: osb-bosh-kafka
   version: latest
-- name: bpm
-  version: 0.2.0
-  url: git+https://github.com/cloudfoundry-incubator/bpm-release
 update:
   canaries: 1
   canary_watch_time: 1000-60000
@@ -17,15 +14,26 @@ stemcells:
   os: ubuntu-trusty
   version: latest
 instance_groups:
-- name: osb-bosh-kafka
+- name: zookeeper
   azs:
-  - az00
-  instances: 1
-  vm_type: small
+  - z1
+  instances: 2
+  vm_type: default
   stemcell: default
   persistent_disk: 10240
-  networks:
-  - name: default
+  networks: [{name: service}]
+  jobs:
+  - name: zookeeper
+    release: osb-bosh-kafka
+    properties: {}
+- name: kafka
+  azs:
+  - z1
+  instances: 3
+  vm_type: default
+  stemcell: default
+  persistent_disk: 10240
+  networks: [{name: service}]
   jobs:
   - name: kafka
     release: osb-bosh-kafka
@@ -33,33 +41,16 @@ instance_groups:
   - name: status
     release: osb-bosh-kafka
     properties: {}
-- name: zookeper
-  azs:
-  - az00
-  instances: 1
-  vm_type: small
-  stemcell: default
-  persistent_disk: 10240
-  networks: 
-  - name: default
-  jobs:
-  - name: zookeeper
-    release: osb-bosh-kafka
-    properties: {}
+
 - name: kafka-smoke-tests
   lifecycle: errand
   instances: 1
   azs:
-  - az00
+  - z1
   jobs:
   - name: kafka-smoke-test
     release: osb-bosh-kafka
     properties: {}
-  vm_type: nano
+  vm_type: default
   stemcell: default
-  networks: [{name: default}]
-addons:
-- name: bpm
-  jobs:
-  - name: bpm
-    release: bpm
+  networks: [{name: service}]
