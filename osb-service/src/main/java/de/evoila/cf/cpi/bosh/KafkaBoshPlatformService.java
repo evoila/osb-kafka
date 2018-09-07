@@ -26,8 +26,9 @@ import rx.Observable;
 public class KafkaBoshPlatformService extends BoshPlatformService {
 
     public static final int KAFKA_PORT = 9092;
+    public static final int KAFKA_PORT_SSL = 9093;
     public static final int ZOOKEEPER_PORT = 2181;
-    private static final String KAFKA_JOB_NAME = "osb-bosh-kafka";
+    private static final String KAFKA_JOB_NAME = "kafka";
 
 
     KafkaBoshPlatformService(PlatformRepository repository, CatalogService catalogService, ServicePortAvailabilityVerifier availabilityVerifier, BoshProperties boshProperties, Optional<DashboardClient> dashboardClient) {
@@ -38,14 +39,6 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         Task task = super.connection.connection().errands().runErrand(deployment.getName(), "kafka-smoke-tests").toBlocking().first();
         super.waitForTaskCompletion(task);
 
-    }
-
-    protected void runUpdateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
-//        Task task = super.connection.connection().errands().runErrand(deployment.getName(), "reconfigure-replset").toBlocking().first();
-        //       super.waitForTaskCompletion(task);
-    }
-
-    protected void runDeleteErrands(ServiceInstance instance, Deployment deployment, Observable<List<ErrandSummary>> errands) {
     }
 
     @Override
@@ -61,9 +54,9 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
             ServerAddress serverAddress;
 
             if (vm.getJobName().equals(KAFKA_JOB_NAME)) {
-                serverAddress = new ServerAddress("Host-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
+                serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
             } else {
-                serverAddress = new ServerAddress("Host-" + vm.getIndex(), vm.getIps().get(0), ZOOKEEPER_PORT);
+                serverAddress = new ServerAddress("Zookeeper-" + vm.getIndex(), vm.getIps().get(0), ZOOKEEPER_PORT);
             }
 
             in.getHosts().add(serverAddress);
