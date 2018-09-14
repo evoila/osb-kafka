@@ -15,11 +15,11 @@ import io.bosh.client.tasks.Task;
 import io.bosh.client.vms.Vm;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
+import rx.Observable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import rx.Observable;
 
 @Service
 @ConditionalOnBean(BoshProperties.class)

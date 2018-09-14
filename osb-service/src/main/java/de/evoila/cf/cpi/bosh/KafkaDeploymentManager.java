@@ -3,11 +3,9 @@ package de.evoila.cf.cpi.bosh;
 import de.evoila.cf.broker.bean.BoshProperties;
 import de.evoila.cf.broker.model.Plan;
 import de.evoila.cf.broker.model.ServiceInstance;
-import de.evoila.cf.broker.util.RandomString;
 import de.evoila.cf.cpi.bosh.deployment.DeploymentManager;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class KafkaDeploymentManager extends DeploymentManager {
