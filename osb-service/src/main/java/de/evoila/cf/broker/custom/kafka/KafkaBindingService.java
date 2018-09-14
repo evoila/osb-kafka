@@ -4,6 +4,11 @@
 package de.evoila.cf.broker.custom.kafka;
 
 import de.evoila.cf.broker.model.*;
+import de.evoila.cf.broker.repository.BindingRepository;
+import de.evoila.cf.broker.repository.RouteBindingRepository;
+import de.evoila.cf.broker.repository.ServiceDefinitionRepository;
+import de.evoila.cf.broker.repository.ServiceInstanceRepository;
+import de.evoila.cf.broker.service.HAProxyService;
 import de.evoila.cf.broker.service.impl.BindingServiceImpl;
 import de.evoila.cf.cpi.bosh.KafkaBoshPlatformService;
 import org.slf4j.Logger;
@@ -27,6 +32,10 @@ public class KafkaBindingService extends BindingServiceImpl {
     private static String ZOOKEEPER_BROKERS = "zkNodes";
     private static String DEFAULT_BROKER_PORT = "defaultBrokerPort";
     private static String DEFAULT_ZK_PORT = "defaultZkPort";
+
+    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository, HAProxyService haProxyService) {
+        super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService);
+    }
 
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
