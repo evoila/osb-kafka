@@ -26,8 +26,8 @@ spring:
 ### General Information ###
 info:
   app:
-    name: MongoDB Service Broker
-    description: MongoDB Service Broker for Cloud Foundry Service Deployments
+    name: Apache Kafka Service Broker
+    description: Apache Kafka Service Broker for Cloud Foundry Service Deployments
     version: 0.1-RC
 
 server:

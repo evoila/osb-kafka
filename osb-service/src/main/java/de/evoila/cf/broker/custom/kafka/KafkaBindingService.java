@@ -3,6 +3,8 @@
  */
 package de.evoila.cf.broker.custom.kafka;
 
+import com.jcraft.jsch.JSchException;
+import de.evoila.cf.broker.exception.ServiceBrokerException;
 import de.evoila.cf.broker.model.*;
 import de.evoila.cf.broker.repository.BindingRepository;
 import de.evoila.cf.broker.repository.RouteBindingRepository;
@@ -10,11 +12,14 @@ import de.evoila.cf.broker.repository.ServiceDefinitionRepository;
 import de.evoila.cf.broker.repository.ServiceInstanceRepository;
 import de.evoila.cf.broker.service.HAProxyService;
 import de.evoila.cf.broker.service.impl.BindingServiceImpl;
+import de.evoila.cf.broker.util.RandomString;
+import de.evoila.cf.cpi.bosh.InstanceGroupNotFoundException;
 import de.evoila.cf.cpi.bosh.KafkaBoshPlatformService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,8 +38,16 @@ public class KafkaBindingService extends BindingServiceImpl {
     private static String DEFAULT_BROKER_PORT = "defaultBrokerPort";
     private static String DEFAULT_ZK_PORT = "defaultZkPort";
 
-    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository, HAProxyService haProxyService) {
+
+    private RandomString usernameRandomString = new RandomString(10);
+    private RandomString passwordRandomString = new RandomString(15);
+
+    private KafkaBoshPlatformService kafkaBoshPlatformService;
+
+    public KafkaBindingService(KafkaBoshPlatformService kafkaBoshPlatformService, BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository, HAProxyService haProxyService) {
         super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService);
+        this.kafkaBoshPlatformService = kafkaBoshPlatformService;
+        assert (kafkaBoshPlatformService != null);
     }
 
     @Override
@@ -64,7 +77,7 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     @Override
     protected Map<String, Object> createCredentials(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
-                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host) {
+                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host) throws ServiceBrokerException {
 
         Map<String, Object> credentials = new HashMap<>();
 
@@ -79,10 +92,25 @@ public class KafkaBindingService extends BindingServiceImpl {
             }
         });
 
+        String username = usernameRandomString.nextString();
+        String password = passwordRandomString.nextString();
+        try {
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password);
+        } catch (IOException | JSchException e) {
+            log.error(String.format("Creating Binding(%s) failed while creating the Kafka user. Connections to Kafka VMs failed", bindingId), e);
+            throw new ServiceBrokerException("Error creating Kafka user");
+        } catch (InstanceGroupNotFoundException e) {
+            log.error(String.format("Creating Binding(%s) failed while creating the Kafka user. %s", bindingId), e);
+            throw new ServiceBrokerException(String.format("Creating Binding(%s) failed while creating the Kafka user. %s", bindingId));
+        }
+
         credentials.put(KAFKA_BROKERS, brokers);
         credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT);
         credentials.put(ZOOKEEPER_BROKERS, zookeepers);
         credentials.put(DEFAULT_ZK_PORT, KafkaBoshPlatformService.ZOOKEEPER_PORT);
+        credentials.put("user", "");
+        credentials.put("password", "");
+        credentials.put("certificate", "");
 
         return credentials;
     }
