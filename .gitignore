@@ -37,3 +37,4 @@ osb-service/osb-kafka.iml
 
 osb-service/src/main/resources/application-local.yml
 manifest.yml
+manifest-with-credentials.yml

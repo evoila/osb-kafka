@@ -37,19 +37,30 @@ public class KafkaBindingService extends BindingServiceImpl {
     private static String ZOOKEEPER_BROKERS = "zkNodes";
     private static String DEFAULT_BROKER_PORT = "defaultBrokerPort";
     private static String DEFAULT_ZK_PORT = "defaultZkPort";
+    private static String USERNAME = "user";
+    private static String PASSWORD = "password";
 
-    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository, HAProxyService haProxyService) {
-        super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService);
+    private CredhubClient credhubClient;
+
+    private KafkaBoshPlatformService kafkaBoshPlatformService;
+
+    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository,
+                               ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository,
+                               HAProxyService haProxyService, JobRepository jobRepository, AsyncBindingService asyncBindingService,
+                               PlatformRepository platformRepository, CredhubClient credhubClient, KafkaBoshPlatformService kafkaBoshPlatformService) {
+        super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService, jobRepository, asyncBindingService, platformRepository);
+        this.credhubClient = credhubClient;
+        this.kafkaBoshPlatformService = kafkaBoshPlatformService;
     }
 
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
-
-    }
-
-    @Override
-    public ServiceInstanceBinding getServiceInstanceBinding(String id) {
-        throw new UnsupportedOperationException();
+        try {
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
     }
 
 
@@ -57,7 +68,6 @@ public class KafkaBindingService extends BindingServiceImpl {
     protected ServiceInstanceBinding bindServiceKey(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
                                                     ServiceInstance serviceInstance, Plan plan,
                                                     List<ServerAddress> externalAddresses) {
-
         throw new UnsupportedOperationException();
     }
 
@@ -84,12 +94,24 @@ public class KafkaBindingService extends BindingServiceImpl {
             }
         });
 
+        credhubClient.createUser(serviceInstance, bindingId);
+
+        String username = credhubClient.getUser(serviceInstance, bindingId).getUsername();
+        String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
+
+        try {
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         credentials.put(KAFKA_BROKERS, brokers);
-        credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT);
+        credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT_SSL);
         credentials.put(ZOOKEEPER_BROKERS, zookeepers);
         credentials.put(DEFAULT_ZK_PORT, KafkaBoshPlatformService.ZOOKEEPER_PORT);
+        credentials.put(USERNAME, username);
+        credentials.put(PASSWORD, password);
 
         return credentials;
     }
-
 }
