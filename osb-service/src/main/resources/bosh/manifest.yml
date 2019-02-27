@@ -17,27 +17,37 @@ instance_groups:
 - name: zookeeper
   azs:
   - z1
-  instances: 2
+  instances: 1
   vm_type: default
   stemcell: default
   persistent_disk: 10240
-  networks: [{name: service}]
+  networks: [{name: default}]
   jobs:
   - name: zookeeper
     release: osb-bosh-kafka
-    properties: {}
+    properties:
+      security:
+        setup_secure_client_connection: false
+        admin_password: changeme
 - name: kafka
   azs:
   - z1
-  instances: 3
+  instances: 1
   vm_type: default
   stemcell: default
   persistent_disk: 10240
-  networks: [{name: service}]
+  networks: [{name: default}]
   jobs:
   - name: kafka
     release: osb-bosh-kafka
-    properties: {}
+    properties:
+      security:
+        setup_secure_client_connection: false
+        admin_password: changeme
+        ssl:
+          certificate_authorities: changeme
+          certificate: changeme
+          key: changeme
   - name: status
     release: osb-bosh-kafka
     properties: {}
@@ -53,4 +63,4 @@ instance_groups:
     properties: {}
   vm_type: default
   stemcell: default
-  networks: [{name: service}]
+  networks: [{name: default}]
