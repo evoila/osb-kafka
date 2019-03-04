@@ -27,7 +27,6 @@ import rx.Observable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -50,18 +49,15 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     }
 
     public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
-        Task task = super.connection.connection().errands().runErrand(deployment.getName(), "kafka-smoke-test").toBlocking().first();
-        super.waitForTaskCompletion(task);
+        Task task = boshClient.client().errands().runErrand(deployment.getName(), "kafka-smoke-test").toBlocking().first();
+        waitForTaskCompletion(task);
     }
 
     @Override
-    protected void updateHosts(ServiceInstance in, Plan plan, Deployment deployment) {
+    protected void updateHosts(ServiceInstance serviceInstance, Plan plan, Deployment deployment) {
+        List<Vm> vms = super.getVms(serviceInstance);
 
-        List<Vm> vms = connection.connection().vms().listDetails(BoshPlatformService.DEPLOYMENT_NAME_PREFIX + in.getId()).toBlocking().first();
-        if (in.getHosts() == null)
-            in.setHosts(new ArrayList<>());
-
-        in.getHosts().clear();
+        serviceInstance.getHosts().clear();
 
         vms.forEach(vm -> {
             ServerAddress serverAddress;
@@ -72,7 +68,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 serverAddress = new ServerAddress("Zookeeper-" + vm.getIndex(), vm.getIps().get(0), ZOOKEEPER_PORT);
             }
 
-            in.getHosts().add(serverAddress);
+            serviceInstance.getHosts().add(serverAddress);
         });
     }
 
