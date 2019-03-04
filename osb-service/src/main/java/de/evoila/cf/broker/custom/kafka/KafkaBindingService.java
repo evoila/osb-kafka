@@ -9,7 +9,6 @@ import de.evoila.cf.broker.model.ServiceInstanceBinding;
 import de.evoila.cf.broker.model.ServiceInstanceBindingRequest;
 import de.evoila.cf.broker.model.catalog.ServerAddress;
 import de.evoila.cf.broker.model.catalog.plan.Plan;
-import de.evoila.cf.broker.model.credential.UsernamePasswordCredential;
 import de.evoila.cf.broker.repository.*;
 import de.evoila.cf.broker.service.AsyncBindingService;
 import de.evoila.cf.broker.service.HAProxyService;
@@ -87,7 +86,7 @@ public class KafkaBindingService extends BindingServiceImpl {
         List<String> zookeepers = new LinkedList<>();
 
         serviceInstance.getHosts().forEach(instance -> {
-            if (instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT) {
+            if (instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT_SSL) {
                 brokers.add(instance.getIp() + ":" + instance.getPort());
             } else if (instance.getPort() == KafkaBoshPlatformService.ZOOKEEPER_PORT) {
                 zookeepers.add(instance.getIp() + ":" + instance.getPort());
