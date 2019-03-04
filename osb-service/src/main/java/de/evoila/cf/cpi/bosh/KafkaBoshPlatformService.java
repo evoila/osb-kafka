@@ -36,7 +36,6 @@ import java.util.Optional;
 @ConditionalOnBean(BoshProperties.class)
 public class KafkaBoshPlatformService extends BoshPlatformService {
 
-    public static final int KAFKA_PORT = 9092;
     public static final int KAFKA_PORT_SSL = 9093;
     public static final int ZOOKEEPER_PORT = 2181;
     private static final String KAFKA_JOB_NAME = "kafka";
@@ -69,7 +68,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
             ServerAddress serverAddress;
 
             if (vm.getJobName().equals(KAFKA_JOB_NAME)) {
-                serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
+                serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT_SSL);
             } else {
                 serverAddress = new ServerAddress("Zookeeper-" + vm.getIndex(), vm.getIps().get(0), ZOOKEEPER_PORT);
             }
