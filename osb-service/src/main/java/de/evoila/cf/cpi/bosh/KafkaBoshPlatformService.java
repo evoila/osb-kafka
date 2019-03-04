@@ -50,9 +50,8 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     }
 
     public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
-        Task task = super.connection.connection().errands().runErrand(deployment.getName(), "kafka-smoke-tests").toBlocking().first();
+        Task task = super.connection.connection().errands().runErrand(deployment.getName(), "kafka-smoke-test").toBlocking().first();
         super.waitForTaskCompletion(task);
-
     }
 
     @Override

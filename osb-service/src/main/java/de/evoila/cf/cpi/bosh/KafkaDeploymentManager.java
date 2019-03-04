@@ -17,6 +17,7 @@ import java.util.*;
 public class KafkaDeploymentManager extends DeploymentManager {
 
     private static final String KAFKA_INSTANCE_GROUP = "kafka";
+    private static final String KAFKA_SMOKE_TEST_INSTANCE = "kafka-smoke-test";
     private static final String ZOOKEEPER_INSTANCE_GROUP = "zookeeper";
     private static final String SECURE_CLIENT = "setup_secure_client_connection";
     private static final String ADMIN_PASSWORD = "admin_password";
@@ -58,9 +59,21 @@ public class KafkaDeploymentManager extends DeploymentManager {
 
         HashMap<String, Object> kafkaSecurity = (HashMap<String, Object>) kafkaProperties.get("security");
 
+        Map<String, Object> smokeTestProperties = manifest.getInstanceGroups()
+                .stream()
+                .filter(i -> i.getName().equals(KAFKA_SMOKE_TEST_INSTANCE))
+                .findAny().get().getJobs()
+                .stream()
+                .filter(j -> j.getName().equals(KAFKA_SMOKE_TEST_INSTANCE))
+                .findAny().get().getProperties();
+
+        HashMap<String, Object> smokeTestSecurity = (HashMap<String, Object>) smokeTestProperties.get("security");
+
         kafkaSecurity.put(SECURE_CLIENT, true);
 
         zookeeperSecurity.put(SECURE_CLIENT, true);
+
+        smokeTestSecurity.put(SECURE_CLIENT, true);
 
         PasswordCredential passwordCredential = credhubClient.createPassword(serviceInstance.getId(), "admin_password");
 
@@ -68,7 +81,11 @@ public class KafkaDeploymentManager extends DeploymentManager {
 
         zookeeperSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
 
-        HashMap<String, Object> ssl = (HashMap<String, Object>) kafkaSecurity.get("ssl");
+        smokeTestSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
+
+        HashMap<String, Object> kafkaSsl = (HashMap<String, Object>) kafkaSecurity.get("ssl");
+
+        HashMap<String, Object> smokeTestSsl = (HashMap<String, Object>) smokeTestSecurity.get("ssl");
 
         CertificateCredential certificateCredential = credhubClient.createCertificate(serviceInstance.getId(), "transport_ssl",
                 CertificateParameters.builder()
@@ -78,9 +95,13 @@ public class KafkaDeploymentManager extends DeploymentManager {
                         .extendedKeyUsage(ExtendedKeyUsage.CLIENT_AUTH, ExtendedKeyUsage.SERVER_AUTH)
                         .build());
 
-        ssl.put(SSL_CA, certificateCredential.getCertificateAuthority());
-        ssl.put(SSL_CERT, certificateCredential.getCertificate());
-        ssl.put(SSL_KEY, certificateCredential.getPrivateKey());
+        kafkaSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
+        kafkaSsl.put(SSL_CERT, certificateCredential.getCertificate());
+        kafkaSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
+
+        smokeTestSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
+        smokeTestSsl.put(SSL_CERT, certificateCredential.getCertificate());
+        smokeTestSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
 
         this.updateInstanceGroupConfiguration(manifest, plan);
     }
