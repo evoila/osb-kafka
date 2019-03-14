@@ -53,30 +53,6 @@ public class KafkaBindingService extends BindingServiceImpl {
     }
 
     @Override
-    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
-        try {
-            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
-    }
-
-
-    @Override
-    protected ServiceInstanceBinding bindServiceKey(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
-                                                    ServiceInstance serviceInstance, Plan plan,
-                                                    List<ServerAddress> externalAddresses) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    protected RouteBinding bindRoute(ServiceInstance serviceInstance, String route) {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
     protected Map<String, Object> createCredentials(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
                                                     ServiceInstance serviceInstance, Plan plan, ServerAddress host) {
 
@@ -112,5 +88,28 @@ public class KafkaBindingService extends BindingServiceImpl {
         credentials.put(PASSWORD, password);
 
         return credentials;
+    }
+
+    @Override
+    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
+        try {
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
+    }
+
+
+    @Override
+    protected ServiceInstanceBinding bindServiceKey(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
+                                                    ServiceInstance serviceInstance, Plan plan,
+                                                    List<ServerAddress> externalAddresses) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected RouteBinding bindRoute(ServiceInstance serviceInstance, String route) {
+        throw new UnsupportedOperationException();
     }
 }

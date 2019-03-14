@@ -22,13 +22,6 @@
     </properties>
 
     <dependencies>
-        <!-- MongoDB -->
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
-            <version>3.8.0</version>
-        </dependency>
-
         <!-- Cloud Foundry Service Broker -->
         <dependency>
             <groupId>de.evoila.cf.broker</groupId>
@@ -37,8 +30,8 @@
         </dependency>
         <dependency>
             <groupId>de.evoila.cf.broker</groupId>
-            <artifactId>openstack</artifactId>
-            <version>${deployment.version}</version>
+            <artifactId>bosh</artifactId>
+            <version>1.2.0</version>
         </dependency>
         <dependency>
             <groupId>de.evoila.cf.broker</groupId>
@@ -51,16 +44,9 @@
             <version>${persistence.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.evoila.cf.broker</groupId>
-            <artifactId>bosh</artifactId>
-            <version>1.2.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.fakemongo</groupId>
-            <artifactId>fongo</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
             <version>2.1.0</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 

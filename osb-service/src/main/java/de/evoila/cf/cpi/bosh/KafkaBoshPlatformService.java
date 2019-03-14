@@ -12,6 +12,7 @@ import de.evoila.cf.broker.model.catalog.plan.Plan;
 import de.evoila.cf.broker.repository.PlatformRepository;
 import de.evoila.cf.broker.service.CatalogService;
 import de.evoila.cf.broker.service.availability.ServicePortAvailabilityVerifier;
+import de.evoila.cf.cpi.CredentialConstants;
 import de.evoila.cf.cpi.bosh.deployment.manifest.InstanceGroup;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 import de.evoila.cf.security.credentials.credhub.CredhubClient;
@@ -74,8 +75,8 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
 
     @Override
     public void postDeleteInstance(ServiceInstance serviceInstance) throws PlatformException {
-        credhubClient.deleteCredentials(serviceInstance.getId(), "admin_password");
-        credhubClient.deleteCertificate(serviceInstance.getId(), "transport_ssl");
+        credhubClient.deleteCredentials(serviceInstance, CredentialConstants.ADMIN_PASSWORD);
+        credhubClient.deleteCertificate(serviceInstance, CredentialConstants.TRANSPORT_SSL);
     }
 
     public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password)

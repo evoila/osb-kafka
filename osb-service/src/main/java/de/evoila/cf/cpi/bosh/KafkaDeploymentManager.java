@@ -5,14 +5,16 @@ import de.evoila.cf.broker.model.ServiceInstance;
 import de.evoila.cf.broker.model.catalog.plan.Plan;
 import de.evoila.cf.broker.model.credential.CertificateCredential;
 import de.evoila.cf.broker.model.credential.PasswordCredential;
+import de.evoila.cf.cpi.CredentialConstants;
 import de.evoila.cf.cpi.bosh.deployment.DeploymentManager;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
-import de.evoila.cf.security.credentials.credhub.CredhubClient;
+import de.evoila.cf.security.credentials.CredentialStore;
 import org.springframework.core.env.Environment;
 import org.springframework.credhub.support.certificate.CertificateParameters;
 import org.springframework.credhub.support.certificate.ExtendedKeyUsage;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class KafkaDeploymentManager extends DeploymentManager {
 
@@ -26,11 +28,11 @@ public class KafkaDeploymentManager extends DeploymentManager {
     private static final String SSL_KEY = "key";
     private static final String ORGANIZATION = "evoila";
 
-    private CredhubClient credhubClient;
+    private CredentialStore credentialStore;
 
-    KafkaDeploymentManager(BoshProperties boshProperties, Environment environment, CredhubClient credhubClient){
+    KafkaDeploymentManager(BoshProperties boshProperties, Environment environment, CredentialStore credentialStore){
         super(boshProperties, environment);
-        this.credhubClient = credhubClient;
+        this.credentialStore = credentialStore;
     }
 
     @Override
@@ -70,24 +72,18 @@ public class KafkaDeploymentManager extends DeploymentManager {
         HashMap<String, Object> smokeTestSecurity = (HashMap<String, Object>) smokeTestProperties.get("security");
 
         kafkaSecurity.put(SECURE_CLIENT, true);
-
         zookeeperSecurity.put(SECURE_CLIENT, true);
-
         smokeTestSecurity.put(SECURE_CLIENT, true);
 
-        PasswordCredential passwordCredential = credhubClient.createPassword(serviceInstance.getId(), "admin_password");
+        PasswordCredential passwordCredential = credentialStore.createPassword(serviceInstance.getId(), CredentialConstants.ADMIN_PASSWORD);
 
         kafkaSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
-
         zookeeperSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
-
         smokeTestSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
 
         HashMap<String, Object> kafkaSsl = (HashMap<String, Object>) kafkaSecurity.get("ssl");
-
         HashMap<String, Object> smokeTestSsl = (HashMap<String, Object>) smokeTestSecurity.get("ssl");
-
-        CertificateCredential certificateCredential = credhubClient.createCertificate(serviceInstance.getId(), "transport_ssl",
+        CertificateCredential certificateCredential = credentialStore.createCertificate(serviceInstance.getId(), CredentialConstants.TRANSPORT_SSL,
                 CertificateParameters.builder()
                         .organization(ORGANIZATION)
                         .selfSign(true)
