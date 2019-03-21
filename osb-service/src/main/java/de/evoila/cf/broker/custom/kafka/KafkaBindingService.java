@@ -18,6 +18,7 @@ import de.evoila.cf.security.credentials.credhub.CredhubClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -45,7 +46,7 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository,
                                ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository,
-                               HAProxyService haProxyService, JobRepository jobRepository, AsyncBindingService asyncBindingService,
+                               @Autowired(required = false) HAProxyService haProxyService, JobRepository jobRepository, AsyncBindingService asyncBindingService,
                                PlatformRepository platformRepository, CredhubClient credhubClient, KafkaBoshPlatformService kafkaBoshPlatformService) {
         super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService, jobRepository, asyncBindingService, platformRepository);
         this.credhubClient = credhubClient;
