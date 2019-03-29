@@ -5,6 +5,7 @@ import de.evoila.cf.broker.model.ServiceInstance;
 import de.evoila.cf.broker.model.catalog.plan.Plan;
 import de.evoila.cf.broker.model.credential.CertificateCredential;
 import de.evoila.cf.broker.model.credential.PasswordCredential;
+import de.evoila.cf.broker.util.MapUtils;
 import de.evoila.cf.cpi.CredentialConstants;
 import de.evoila.cf.cpi.bosh.deployment.DeploymentManager;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
@@ -19,8 +20,6 @@ import java.util.Map;
 public class KafkaDeploymentManager extends DeploymentManager {
 
     private static final String KAFKA_INSTANCE_GROUP = "kafka";
-    private static final String KAFKA_SMOKE_TEST_INSTANCE = "kafka-smoke-test";
-    private static final String ZOOKEEPER_INSTANCE_GROUP = "zookeeper";
     private static final String SECURE_CLIENT = "setup_secure_client_connection";
     private static final String ADMIN_PASSWORD = "admin_password";
     private static final String SSL_CA = "certificate_authorities";
@@ -41,65 +40,51 @@ public class KafkaDeploymentManager extends DeploymentManager {
         if(customParameters != null && !customParameters.isEmpty())
             properties.putAll(customParameters);
 
-        Map<String, Object> zookeeperProperties = manifest.getInstanceGroups()
-                .stream()
-                .filter(i -> i.getName().equals(ZOOKEEPER_INSTANCE_GROUP))
-                .findAny().get().getJobs()
-                .stream()
-                .filter(j -> j.getName().equals(ZOOKEEPER_INSTANCE_GROUP))
-                .findAny().get().getProperties();
+        if(isUpdate && customParameters != null && !customParameters.isEmpty()) {
 
-        HashMap<String, Object> zookeeperSecurity = (HashMap<String, Object>) zookeeperProperties.get("security");
+            Map<String, Object> kafkaProperties = (Map<String, Object>) manifestProperties(KAFKA_INSTANCE_GROUP, manifest).get("kafka");
+            Map<String, Object> kafkaSecurity = (Map<String, Object>) kafkaProperties.get("security");
 
-        Map<String, Object> kafkaProperties = manifest.getInstanceGroups()
-                .stream()
-                .filter(i -> i.getName().equals(KAFKA_INSTANCE_GROUP))
-                .findAny().get().getJobs()
-                .stream()
-                .filter(j -> j.getName().equals(KAFKA_INSTANCE_GROUP))
-                .findAny().get().getProperties();
+            kafkaSecurity.put(SECURE_CLIENT, true);
 
-        HashMap<String, Object> kafkaSecurity = (HashMap<String, Object>) kafkaProperties.get("security");
+            PasswordCredential passwordCredential = credentialStore.createPassword(serviceInstance.getId(), CredentialConstants.ADMIN_PASSWORD);
 
-        Map<String, Object> smokeTestProperties = manifest.getInstanceGroups()
-                .stream()
-                .filter(i -> i.getName().equals(KAFKA_SMOKE_TEST_INSTANCE))
-                .findAny().get().getJobs()
-                .stream()
-                .filter(j -> j.getName().equals(KAFKA_SMOKE_TEST_INSTANCE))
-                .findAny().get().getProperties();
+            kafkaSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
 
-        HashMap<String, Object> smokeTestSecurity = (HashMap<String, Object>) smokeTestProperties.get("security");
+            HashMap<String, Object> kafkaSsl = (HashMap<String, Object>) kafkaSecurity.get("ssl");
 
-        kafkaSecurity.put(SECURE_CLIENT, true);
-        zookeeperSecurity.put(SECURE_CLIENT, true);
-        smokeTestSecurity.put(SECURE_CLIENT, true);
 
-        PasswordCredential passwordCredential = credentialStore.createPassword(serviceInstance.getId(), CredentialConstants.ADMIN_PASSWORD);
+            CertificateCredential certificateCredential = credentialStore.createCertificate(serviceInstance.getId(), CredentialConstants.TRANSPORT_SSL,
+                    CertificateParameters.builder()
+                            .organization(ORGANIZATION)
+                            .selfSign(true)
+                            .certificateAuthority(true)
+                            .extendedKeyUsage(ExtendedKeyUsage.CLIENT_AUTH, ExtendedKeyUsage.SERVER_AUTH)
+                            .build());
 
-        kafkaSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
-        zookeeperSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
-        smokeTestSecurity.put(ADMIN_PASSWORD, passwordCredential.getPassword());
+            kafkaSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
+            kafkaSsl.put(SSL_CERT, certificateCredential.getCertificate());
+            kafkaSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
 
-        HashMap<String, Object> kafkaSsl = (HashMap<String, Object>) kafkaSecurity.get("ssl");
-        HashMap<String, Object> smokeTestSsl = (HashMap<String, Object>) smokeTestSecurity.get("ssl");
-        CertificateCredential certificateCredential = credentialStore.createCertificate(serviceInstance.getId(), CredentialConstants.TRANSPORT_SSL,
-                CertificateParameters.builder()
-                        .organization(ORGANIZATION)
-                        .selfSign(true)
-                        .certificateAuthority(true)
-                        .extendedKeyUsage(ExtendedKeyUsage.CLIENT_AUTH, ExtendedKeyUsage.SERVER_AUTH)
-                        .build());
+            for (Map.Entry parameter : customParameters.entrySet()) {
+                Map<String, Object> manifestProperties = manifestProperties(parameter.getKey().toString(), manifest);
 
-        kafkaSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
-        kafkaSsl.put(SSL_CERT, certificateCredential.getCertificate());
-        kafkaSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
-
-        smokeTestSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
-        smokeTestSsl.put(SSL_CERT, certificateCredential.getCertificate());
-        smokeTestSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
+                if (manifestProperties != null)
+                    MapUtils.deepMerge(manifestProperties, customParameters);
+            }
+        }
 
         this.updateInstanceGroupConfiguration(manifest, plan);
     }
 
+    private Map<String, Object> manifestProperties(String instanceGroup, Manifest manifest) {
+        return manifest
+                .getInstanceGroups()
+                .stream()
+                .filter(i -> {
+                    if (i.getName().equals(instanceGroup))
+                        return true;
+                    return false;
+                }).findFirst().get().getProperties();
+    }
 }

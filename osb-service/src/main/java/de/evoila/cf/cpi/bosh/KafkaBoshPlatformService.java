@@ -1,5 +1,7 @@
 package de.evoila.cf.cpi.bosh;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -30,23 +32,28 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 @ConditionalOnBean(BoshProperties.class)
 public class KafkaBoshPlatformService extends BoshPlatformService {
 
+    public static final int KAFKA_PORT = 9092;
     public static final int KAFKA_PORT_SSL = 9093;
     public static final int ZOOKEEPER_PORT = 2181;
     private static final String KAFKA_JOB_NAME = "kafka";
+    private static final String SECURE_CLIENT = "setup_secure_client_connection";
 
     private CredhubClient credhubClient;
 
+    private ObjectMapper objectMapper;
 
     KafkaBoshPlatformService(PlatformRepository repository, CatalogService catalogService, ServicePortAvailabilityVerifier availabilityVerifier,
                              BoshProperties boshProperties, Optional<DashboardClient> dashboardClient, Environment environment, CredhubClient credhubClient) {
         super(repository, catalogService, availabilityVerifier, boshProperties, dashboardClient, new KafkaDeploymentManager(boshProperties, environment, credhubClient));
         this.credhubClient = credhubClient;
+        this.objectMapper = new ObjectMapper(new YAMLFactory());
     }
 
     public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
@@ -64,7 +71,29 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
             ServerAddress serverAddress;
 
             if (vm.getJobName().equals(KAFKA_JOB_NAME)) {
-                serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT_SSL);
+
+                Manifest manifest = null;
+                try {
+                    manifest = objectMapper.readValue(deployment.getRawManifest(), Manifest.class);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Map<String, Object> kafkaProperties = (Map<String, Object>) manifest.getInstanceGroups()
+                            .stream()
+                            .filter(i -> i.getName().equals(KAFKA_JOB_NAME))
+                            .findAny()
+                            .get()
+                            .getProperties()
+                            .get("kafka");
+
+                Map<String, Object> securityProperties = (Map<String, Object>) kafkaProperties.get("security");
+
+                if((Boolean) securityProperties.get(SECURE_CLIENT)) {
+                    serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT_SSL);
+                } else {
+                    serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
+                }
             } else {
                 serverAddress = new ServerAddress("Zookeeper-" + vm.getIndex(), vm.getIps().get(0), ZOOKEEPER_PORT);
             }
@@ -74,7 +103,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     }
 
     @Override
-    public void postDeleteInstance(ServiceInstance serviceInstance) throws PlatformException {
+    public void postDeleteInstance(ServiceInstance serviceInstance) {
         credhubClient.deleteCredentials(serviceInstance, CredentialConstants.ADMIN_PASSWORD);
         credhubClient.deleteCertificate(serviceInstance, CredentialConstants.TRANSPORT_SSL);
     }
