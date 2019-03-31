@@ -29,7 +29,7 @@ public class KafkaDeploymentManager extends DeploymentManager {
 
     private CredentialStore credentialStore;
 
-    KafkaDeploymentManager(BoshProperties boshProperties, Environment environment, CredentialStore credentialStore){
+    KafkaDeploymentManager(BoshProperties boshProperties, Environment environment, CredentialStore credentialStore) {
         super(boshProperties, environment);
         this.credentialStore = credentialStore;
     }

@@ -17,7 +17,7 @@ import de.evoila.cf.broker.service.availability.ServicePortAvailabilityVerifier;
 import de.evoila.cf.cpi.CredentialConstants;
 import de.evoila.cf.cpi.bosh.deployment.manifest.InstanceGroup;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
-import de.evoila.cf.security.credentials.credhub.CredhubClient;
+import de.evoila.cf.security.credentials.CredentialStore;
 import io.bosh.client.deployments.Deployment;
 import io.bosh.client.errands.ErrandSummary;
 import io.bosh.client.tasks.Task;
@@ -45,14 +45,16 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     private static final String KAFKA_JOB_NAME = "kafka";
     private static final String SECURE_CLIENT = "setup_secure_client_connection";
 
-    private CredhubClient credhubClient;
+    private CredentialStore credentialStore;
 
     private ObjectMapper objectMapper;
 
     KafkaBoshPlatformService(PlatformRepository repository, CatalogService catalogService, ServicePortAvailabilityVerifier availabilityVerifier,
-                             BoshProperties boshProperties, Optional<DashboardClient> dashboardClient, Environment environment, CredhubClient credhubClient) {
-        super(repository, catalogService, availabilityVerifier, boshProperties, dashboardClient, new KafkaDeploymentManager(boshProperties, environment, credhubClient));
-        this.credhubClient = credhubClient;
+                             BoshProperties boshProperties, Optional<DashboardClient> dashboardClient, Environment environment, CredentialStore credentialStore) {
+        super(repository, catalogService, availabilityVerifier,
+                boshProperties, dashboardClient,
+                new KafkaDeploymentManager(boshProperties, environment, credentialStore));
+        this.credentialStore = credentialStore;
         this.objectMapper = new ObjectMapper(new YAMLFactory());
     }
 
@@ -104,8 +106,12 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
 
     @Override
     public void postDeleteInstance(ServiceInstance serviceInstance) {
-        credhubClient.deleteCredentials(serviceInstance, CredentialConstants.ADMIN_PASSWORD);
-        credhubClient.deleteCertificate(serviceInstance, CredentialConstants.TRANSPORT_SSL);
+        try {
+            credentialStore.deleteCredentials(serviceInstance, CredentialConstants.ADMIN_PASSWORD);
+            credentialStore.deleteCertificate(serviceInstance, CredentialConstants.TRANSPORT_SSL);
+        } catch (Exception ex) {
+            log.info("Could not delete Credentials: this might happen, when Kafka Security was not configured");
+        }
     }
 
     public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password)

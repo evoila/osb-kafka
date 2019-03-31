@@ -3,16 +3,19 @@ name: osb-bosh-kafka
 releases:
 - name: osb-bosh-kafka
   version: latest
+
 update:
   canaries: 1
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
   max_in_flight: 1
   serial: true
+
 stemcells:
 - alias: default
-  os: ubuntu-trusty
+  os: ubuntu-xenial
   version: latest
+
 instance_groups:
 - name: zookeeper
   azs:
@@ -20,8 +23,9 @@ instance_groups:
   instances: 1
   vm_type: default
   stemcell: default
-  persistent_disk: 10240
-  networks: [{name: default}]
+  persistent_disk_type: 10GB
+  networks:
+  - name: default
   jobs:
   - name: zookeeper
     release: osb-bosh-kafka
@@ -52,8 +56,9 @@ instance_groups:
   instances: 1
   vm_type: default
   stemcell: default
-  persistent_disk: 10240
-  networks: [{name: default}]
+  persistent_disk_type: 10GB
+  networks:
+  - name: default
   jobs:
   - name: kafka
     release: osb-bosh-kafka
@@ -83,7 +88,7 @@ instance_groups:
         log_retention_check_interval_ms: 300000
         log_segment_bytes: 1073741824
 
-- name: kafka-smoke-test
+- name: kafka-smoke-test-runner
   lifecycle: errand
   instances: 1
   azs:
@@ -93,5 +98,6 @@ instance_groups:
     release: osb-bosh-kafka
   vm_type: default
   stemcell: default
-  networks: [{name: default}]
+  networks:
+  - name: default
   properties: {}
