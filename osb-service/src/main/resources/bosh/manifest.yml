@@ -20,7 +20,7 @@ instance_groups:
   instances: 1
   vm_type: default
   stemcell: default
-  persistent_disk: 10240
+  persistent_disk_typ: 10240
   networks: [{name: default}]
   jobs:
   - name: zookeeper
@@ -52,7 +52,7 @@ instance_groups:
   instances: 1
   vm_type: default
   stemcell: default
-  persistent_disk: 10240
+  persistent_disk_type: 10240
   networks: [{name: default}]
   jobs:
   - name: kafka
