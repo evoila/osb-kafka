@@ -1,0 +1,7 @@
+---
+spring:
+  rabbitmq:
+    host: "${RABBITMQ_HOST}"
+  data:
+    mongodb:
+      host: "${MONGODB_HOST}"
