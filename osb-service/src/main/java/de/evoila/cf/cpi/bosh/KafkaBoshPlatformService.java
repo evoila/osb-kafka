@@ -133,7 +133,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     private void createKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username,
                                  String password) throws JSchException {
 
-        Session sshSession = getSshSession(instance, instanceGroup, 0)
+        Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
                 .first();
 
@@ -166,7 +166,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
     }
 
     private void deleteKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username) throws JSchException {
-        Session sshSession = getSshSession(instance, instanceGroup, 0)
+        Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
                 .first();
 
