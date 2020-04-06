@@ -11,14 +11,12 @@ import de.evoila.cf.broker.model.catalog.ServerAddress;
 import de.evoila.cf.broker.model.catalog.plan.Plan;
 import de.evoila.cf.broker.repository.*;
 import de.evoila.cf.broker.service.AsyncBindingService;
-import de.evoila.cf.broker.service.HAProxyService;
 import de.evoila.cf.broker.service.impl.BindingServiceImpl;
 import de.evoila.cf.cpi.bosh.KafkaBoshPlatformService;
 import de.evoila.cf.security.credentials.credhub.CredhubClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -44,11 +42,10 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     private KafkaBoshPlatformService kafkaBoshPlatformService;
 
-    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository,
-                               ServiceInstanceRepository serviceInstanceRepository, RouteBindingRepository routeBindingRepository,
-                               @Autowired(required = false) HAProxyService haProxyService, JobRepository jobRepository, AsyncBindingService asyncBindingService,
-                               PlatformRepository platformRepository, CredhubClient credhubClient, KafkaBoshPlatformService kafkaBoshPlatformService) {
-        super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, haProxyService, jobRepository, asyncBindingService, platformRepository);
+    public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository,
+                               RouteBindingRepository routeBindingRepository, JobRepository jobRepository, AsyncBindingService asyncBindingService, PlatformRepository platformRepository,
+                               CredhubClient credhubClient, KafkaBoshPlatformService kafkaBoshPlatformService) {
+        super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, jobRepository, asyncBindingService, platformRepository);
         this.credhubClient = credhubClient;
         this.kafkaBoshPlatformService = kafkaBoshPlatformService;
     }
@@ -99,14 +96,6 @@ public class KafkaBindingService extends BindingServiceImpl {
             e.printStackTrace();
         }
         credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
-    }
-
-
-    @Override
-    protected ServiceInstanceBinding bindServiceKey(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
-                                                    ServiceInstance serviceInstance, Plan plan,
-                                                    List<ServerAddress> externalAddresses) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
