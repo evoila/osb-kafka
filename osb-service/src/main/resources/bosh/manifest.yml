@@ -92,17 +92,17 @@ instance_groups:
         log_retention_check_interval_ms: 300000
         log_segment_bytes: 1073741824
 
-#- name: kafka-smoke-test-runner
-#  lifecycle: errand
-#  instances: 1
-#  azs:
-#  - z1
-#  jobs:
-#  - name: kafka-smoke-test
-#    release: osb-bosh-kafka
-#  vm_type: default
-#  stemcell: default
-#  networks:
-#  - name: default
-#  properties: {}
+- name: kafka-smoke-test-runner
+  lifecycle: errand
+  instances: 1
+  azs:
+  - z1
+  jobs:
+  - name: kafka-smoke-test
+    release: osb-bosh-kafka
+  vm_type: default
+  stemcell: default
+  networks:
+  - name: default
+  properties: {}
 
