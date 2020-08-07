@@ -13,11 +13,13 @@ import de.evoila.cf.broker.repository.*;
 import de.evoila.cf.broker.service.AsyncBindingService;
 import de.evoila.cf.broker.service.impl.BindingServiceImpl;
 import de.evoila.cf.cpi.bosh.KafkaBoshPlatformService;
+import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 import de.evoila.cf.security.credentials.credhub.CredhubClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,7 +62,7 @@ public class KafkaBindingService extends BindingServiceImpl {
         List<String> zookeepers = new LinkedList<>();
 
         serviceInstance.getHosts().forEach(instance -> {
-            if (instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT_SSL) {
+            if (instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT_SSL || instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT) {
                 brokers.add(instance.getIp() + ":" + instance.getPort());
             } else if (instance.getPort() == KafkaBoshPlatformService.ZOOKEEPER_PORT) {
                 zookeepers.add(instance.getIp() + ":" + instance.getPort());
@@ -78,8 +80,21 @@ public class KafkaBindingService extends BindingServiceImpl {
             e.printStackTrace();
         }
 
+        Manifest manifest = null;
+        try {
+            manifest = kafkaBoshPlatformService.getDeployedManifest(serviceInstance);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         credentials.put(KAFKA_BROKERS, brokers);
-        credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT_SSL);
+
+        if(manifest != null && kafkaBoshPlatformService.isKafkaSecure(manifest)) {
+            credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT_SSL);
+        } else {
+            credentials.put(DEFAULT_BROKER_PORT, kafkaBoshPlatformService.KAFKA_PORT);
+        }
+
         credentials.put(ZOOKEEPER_BROKERS, zookeepers);
         credentials.put(DEFAULT_ZK_PORT, KafkaBoshPlatformService.ZOOKEEPER_PORT);
         credentials.put(USERNAME, username);

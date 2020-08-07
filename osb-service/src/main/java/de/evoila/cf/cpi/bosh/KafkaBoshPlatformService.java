@@ -81,17 +81,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                     e.printStackTrace();
                 }
 
-                Map<String, Object> kafkaProperties = (Map<String, Object>) manifest.getInstanceGroups()
-                            .stream()
-                            .filter(i -> i.getName().equals(KAFKA_JOB_NAME))
-                            .findAny()
-                            .get()
-                            .getProperties()
-                            .get("kafka");
-
-                Map<String, Object> securityProperties = (Map<String, Object>) kafkaProperties.get("security");
-
-                if((Boolean) securityProperties.get(SECURE_CLIENT)) {
+                if(isKafkaSecure(manifest)) {
                     serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT_SSL);
                 } else {
                     serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
@@ -112,6 +102,20 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         } catch (Exception ex) {
             log.info("Could not delete Credentials: this might happen, when Kafka Security was not configured");
         }
+    }
+
+    public boolean isKafkaSecure(Manifest manifest) {
+        Map<String, Object> kafkaProperties = (Map<String, Object>) manifest.getInstanceGroups()
+                .stream()
+                .filter(i -> i.getName().equals(KAFKA_JOB_NAME))
+                .findAny()
+                .get()
+                .getProperties()
+                .get("kafka");
+
+        Map<String, Object> kafkaSecurityProperties = (Map<String, Object>) kafkaProperties.get("security");
+
+        return (Boolean) kafkaSecurityProperties.get(SECURE_CLIENT);
     }
 
     public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password)
