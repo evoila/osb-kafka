@@ -34,6 +34,7 @@ public class KafkaBindingService extends BindingServiceImpl {
     private Logger log = LoggerFactory.getLogger(KafkaBindingService.class);
 
     private static String KAFKA_BROKERS = "brokers";
+    private static String KAFKA_BOOTSTRAP_SERVERS = "bootstrap-servers";
     private static String ZOOKEEPER_BROKERS = "zkNodes";
     private static String DEFAULT_BROKER_PORT = "defaultBrokerPort";
     private static String DEFAULT_ZK_PORT = "defaultZkPort";
@@ -88,6 +89,7 @@ public class KafkaBindingService extends BindingServiceImpl {
         }
 
         credentials.put(KAFKA_BROKERS, brokers);
+        credentials.put(KAFKA_BOOTSTRAP_SERVERS, brokers);
 
         if(manifest != null && kafkaBoshPlatformService.isKafkaSecure(manifest)) {
             credentials.put(DEFAULT_BROKER_PORT, KafkaBoshPlatformService.KAFKA_PORT_SSL);
