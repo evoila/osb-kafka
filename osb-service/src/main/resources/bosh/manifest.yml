@@ -48,7 +48,7 @@ instance_groups:
         autopurge_purge_interval: 24
         autopurge_snap_retain_count: 3
         cnx_timeout: 5
-        election_algorithm: 3
+        election_algorim: 3
         warning_threshold_ms: 1000
         global_outstanding_limit: 1000
         init_limit: 5
@@ -83,8 +83,8 @@ instance_groups:
         setup_secure_client_connection: true
         admin_password: ((admin_password))
         ssl:
-          certificate_authorities: ((transport_ssl.ca))
-          key: ((transport_ssl.private_key))
+          certificate_authorities: ((server_ca_certificate.ca))
+          key: ((server_ca_certificate.private_key))
       config:
         delete_topic: true
         offsets_topic_replication_factor: 1
