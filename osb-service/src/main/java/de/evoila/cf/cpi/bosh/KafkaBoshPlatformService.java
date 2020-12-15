@@ -22,6 +22,8 @@ import io.bosh.client.deployments.Deployment;
 import io.bosh.client.errands.ErrandSummary;
 import io.bosh.client.tasks.Task;
 import io.bosh.client.vms.Vm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ import rx.Observable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +52,8 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
 
     private ObjectMapper objectMapper;
 
+    private Logger log = LoggerFactory.getLogger(KafkaBoshPlatformService.class);
+
     KafkaBoshPlatformService(PlatformRepository repository, CatalogService catalogService, ServicePortAvailabilityVerifier availabilityVerifier,
                              BoshProperties boshProperties, Optional<DashboardClient> dashboardClient, Environment environment, CredentialStore credentialStore) {
         super(repository, catalogService, availabilityVerifier,
@@ -60,7 +65,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
 
     public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
         Task task = boshClient.client().errands().runErrand(deployment.getName(), "kafka-smoke-test").toBlocking().first();
-        waitForTaskCompletion(task);
+        waitForTaskCompletion(task, Instant.now().plusSeconds(1800));
     }
 
     @Override
