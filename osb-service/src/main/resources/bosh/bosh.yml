@@ -82,6 +82,7 @@ instance_groups:
       security:
         setup_secure_client_connection: true
         admin_password: ((admin_password))
+        acl: true
         ssl:
           certificate_authorities: ((server_ca_certificate.ca))
           key: ((server_ca_certificate.private_key))

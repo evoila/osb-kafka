@@ -123,7 +123,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         return (Boolean) kafkaSecurityProperties.get(SECURE_CLIENT);
     }
 
-    public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password)
+    public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password, String topic)
             throws IOException, InstanceGroupNotFoundException, JSchException {
         Manifest manifest = super.getDeployedManifest(serviceInstance);
 
@@ -133,14 +133,14 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .findAny();
 
         if(group.isPresent()) {
-            createKafkaUser(serviceInstance, group.get(), username, password);
+            createKafkaUser(serviceInstance, group.get(), username, password, topic);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
         }
     }
 
     private void createKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username,
-                                 String password) throws JSchException {
+                                 String password, String topics) throws JSchException {
 
         Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
@@ -151,7 +151,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh %s %s", username, password)
+                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh %s %s %s", username, password, topics)
         );
 
         executeCommands(channel, commands);
@@ -159,7 +159,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         close(channel, sshSession);
     }
 
-    public void deleteKafkaUser(ServiceInstance serviceInstance, Plan plan, String username) throws IOException, InstanceGroupNotFoundException, JSchException {
+    public void deleteKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String topics) throws IOException, InstanceGroupNotFoundException, JSchException {
         Manifest manifest = super.getDeployedManifest(serviceInstance);
 
         Optional<InstanceGroup> group = manifest.getInstanceGroups()
@@ -168,13 +168,13 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .findAny();
 
         if(group.isPresent()) {
-            deleteKafkaUser(serviceInstance, group.get(), username);
+            deleteKafkaUser(serviceInstance, group.get(), username, topics);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
         }
     }
 
-    private void deleteKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username) throws JSchException {
+    private void deleteKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username, String topics) throws JSchException {
         Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
                 .first();
@@ -184,7 +184,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh %s", username)
+                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh %s %s", username,topics)
         );
 
         executeCommands(channel, commands);

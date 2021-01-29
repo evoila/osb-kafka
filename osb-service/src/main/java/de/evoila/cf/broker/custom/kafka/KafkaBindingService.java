@@ -20,10 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Johannes Hiemer.
@@ -60,6 +58,7 @@ public class KafkaBindingService extends BindingServiceImpl {
 
         Map<String, Object> credentials = new HashMap<>();
 
+        String topics="*:ALL";
         List<String> brokers = new LinkedList<>();
         List<String> zookeepers = new LinkedList<>();
 
@@ -71,13 +70,20 @@ public class KafkaBindingService extends BindingServiceImpl {
             }
         });
 
+        ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) serviceInstanceBindingRequest.getParameters().get("topics");
+
+        if(topicMap!=null) {
+            topics = String.join(";", topicMap.stream().map(topic -> {
+                return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
+            }).collect(Collectors.toList()));
+        }
         credhubClient.createUser(serviceInstance, bindingId);
 
         String username = credhubClient.getUser(serviceInstance, bindingId).getUsername();
         String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
 
         try {
-            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password);
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password,topics);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -109,8 +115,16 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
+        ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) binding.getParameters().get("topics");
+
+        String topics = "*:ALL";
+        if( topicMap!=null ) {
+            topics=String.join(";", topicMap.stream().map(topic -> {
+                return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
+            }).collect(Collectors.toList()));
+        }
         try {
-            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername());
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(),topics);
         } catch (Exception e) {
             e.printStackTrace();
         }
