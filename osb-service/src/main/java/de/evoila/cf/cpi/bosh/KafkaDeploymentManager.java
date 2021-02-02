@@ -40,7 +40,7 @@ public class KafkaDeploymentManager extends DeploymentManager {
         if(customParameters != null && !customParameters.isEmpty())
             properties.putAll(customParameters);
 
-        if(isUpdate && customParameters != null && !customParameters.isEmpty()) {
+        if(customParameters != null && !customParameters.isEmpty()) {
 
             Map<String, Object> kafkaProperties = (Map<String, Object>) manifestProperties(KAFKA_INSTANCE_GROUP, manifest).get("kafka");
             Map<String, Object> kafkaSecurity = (Map<String, Object>) kafkaProperties.get("security");
@@ -65,12 +65,14 @@ public class KafkaDeploymentManager extends DeploymentManager {
             kafkaSsl.put(SSL_CA, certificateCredential.getCertificateAuthority());
             kafkaSsl.put(SSL_CERT, certificateCredential.getCertificate());
             kafkaSsl.put(SSL_KEY, certificateCredential.getPrivateKey());
+            
+            if (customParameters != null) {
+                for (Map.Entry parameter : customParameters.entrySet()) {
+                    Map<String, Object> manifestProperties = manifestProperties(parameter.getKey().toString(), manifest);
 
-            for (Map.Entry parameter : customParameters.entrySet()) {
-                Map<String, Object> manifestProperties = manifestProperties(parameter.getKey().toString(), manifest);
-
-                if (manifestProperties != null)
-                    MapUtils.deepMerge(manifestProperties, customParameters);
+                    if (manifestProperties != null)
+                        MapUtils.deepMerge(manifestProperties, customParameters);
+                }
             }
         }
 
