@@ -3,6 +3,8 @@
  */
 package de.evoila.cf.broker.custom.kafka;
 
+
+import de.evoila.cf.broker.exception.PlatformException;
 import de.evoila.cf.broker.model.RouteBinding;
 import de.evoila.cf.broker.model.ServiceInstance;
 import de.evoila.cf.broker.model.ServiceInstanceBinding;
@@ -54,7 +56,7 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     @Override
     protected Map<String, Object> createCredentials(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
-                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host) {
+                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host)  throws PlatformException {
 
         Map<String, Object> credentials = new HashMap<>();
 
@@ -93,6 +95,7 @@ public class KafkaBindingService extends BindingServiceImpl {
             manifest = kafkaBoshPlatformService.getDeployedManifest(serviceInstance);
         } catch (IOException e) {
             e.printStackTrace();
+            throw new PlatformException("Can not create user");
         }
 
         credentials.put(KAFKA_BROKERS, brokers);
@@ -114,7 +117,7 @@ public class KafkaBindingService extends BindingServiceImpl {
     }
 
     @Override
-    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
+    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) throws PlatformException {
         ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) binding.getParameters().get("topics");
 
         String topics = "*:ALL";
@@ -127,6 +130,7 @@ public class KafkaBindingService extends BindingServiceImpl {
             kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(),topics);
         } catch (Exception e) {
             e.printStackTrace();
+            throw new PlatformException("Can not delete User");
         }
         credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
     }
