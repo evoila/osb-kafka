@@ -61,6 +61,8 @@ public class KafkaBindingService extends BindingServiceImpl {
         Map<String, Object> credentials = new HashMap<>();
 
         String topics="*:ALL";
+        String groups="*:AALL";
+        String cluster="";
         List<String> brokers = new LinkedList<>();
         List<String> zookeepers = new LinkedList<>();
 
@@ -79,13 +81,30 @@ public class KafkaBindingService extends BindingServiceImpl {
                 return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
             }).collect(Collectors.toList()));
         }
+
+        ArrayList<Map<String,Object>> groupMap = (ArrayList<Map<String, Object>>) serviceInstanceBindingRequest.getParameters().get("groups");
+
+        if (groupMap != null) {
+            groups = String.join(";", topicMap.stream().map(group -> {
+                return group.get("name") + ":" + String.join(",", (ArrayList<String>) group.get("rights"));
+            }).collect(Collectors.toList()));
+        }
+        credhubClient.createUser(serviceInstance, bindingId);
+
+
+        ArrayList<String> clusterArray = (ArrayList<String>) serviceInstanceBindingRequest.getParameters().get("custer");
+
+        if(clusterArray!=null) {
+            cluster = String.join(",", clusterArray);
+        }
+
         credhubClient.createUser(serviceInstance, bindingId);
 
         String username = credhubClient.getUser(serviceInstance, bindingId).getUsername();
         String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
 
         try {
-            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password,topics);
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password, topics, groups, cluster);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -118,16 +137,35 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) throws PlatformException {
+
+        String topics="*:ALL";
+        String groups="*:AALL";
+        String cluster="";
+
         ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) binding.getParameters().get("topics");
 
-        String topics = "*:ALL";
-        if( topicMap!=null ) {
-            topics=String.join(";", topicMap.stream().map(topic -> {
+        if(topicMap!=null) {
+            topics = String.join(";", topicMap.stream().map(topic -> {
                 return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
             }).collect(Collectors.toList()));
         }
+
+        ArrayList<Map<String,Object>> groupMap = (ArrayList<Map<String, Object>>) binding.getParameters().get("groups");
+
+        if (groupMap!=null) {
+            groups = String.join(";", topicMap.stream().map(group -> {
+                return group.get("name") + ":" + String.join(",", (ArrayList<String>) group.get("rights"));
+            }).collect(Collectors.toList()));
+        }
+
+        ArrayList<String> clusterArray = (ArrayList<String>) binding.getParameters().get("custer");
+
+        if(clusterArray!=null) {
+                cluster = String.join(",", clusterArray);
+        }
+        
         try {
-            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(),topics);
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(), topics, groups, cluster);
         } catch (Exception e) {
             e.printStackTrace();
             throw new PlatformException("Can not delete User");
