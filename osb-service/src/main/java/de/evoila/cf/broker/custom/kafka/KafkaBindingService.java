@@ -3,10 +3,9 @@
  */
 package de.evoila.cf.broker.custom.kafka;
 
-import de.evoila.cf.broker.model.RouteBinding;
-import de.evoila.cf.broker.model.ServiceInstance;
-import de.evoila.cf.broker.model.ServiceInstanceBinding;
-import de.evoila.cf.broker.model.ServiceInstanceBindingRequest;
+import de.evoila.cf.broker.exception.PlatformException;
+import de.evoila.cf.broker.exception.ServiceBrokerException;
+import de.evoila.cf.broker.model.*;
 import de.evoila.cf.broker.model.catalog.ServerAddress;
 import de.evoila.cf.broker.model.catalog.plan.Plan;
 import de.evoila.cf.broker.repository.*;
@@ -17,11 +16,13 @@ import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 import de.evoila.cf.security.credentials.credhub.CredhubClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Johannes Hiemer.
@@ -44,23 +45,50 @@ public class KafkaBindingService extends BindingServiceImpl {
 
     private KafkaBoshPlatformService kafkaBoshPlatformService;
 
+    @EventListener(ContextRefreshedEvent.class)
+    public void changeSystemProrties() {
+        System.setProperties(new ThreadLocalProperties(System.getProperties()));
+    }
+
     public KafkaBindingService(BindingRepository bindingRepository, ServiceDefinitionRepository serviceDefinitionRepository, ServiceInstanceRepository serviceInstanceRepository,
                                RouteBindingRepository routeBindingRepository, JobRepository jobRepository, AsyncBindingService asyncBindingService, PlatformRepository platformRepository,
                                CredhubClient credhubClient, KafkaBoshPlatformService kafkaBoshPlatformService) {
         super(bindingRepository, serviceDefinitionRepository, serviceInstanceRepository, routeBindingRepository, jobRepository, asyncBindingService, platformRepository);
         this.credhubClient = credhubClient;
         this.kafkaBoshPlatformService = kafkaBoshPlatformService;
+
     }
 
     @Override
     protected Map<String, Object> createCredentials(String bindingId, ServiceInstanceBindingRequest serviceInstanceBindingRequest,
-                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host) {
+                                                    ServiceInstance serviceInstance, Plan plan, ServerAddress host) throws PlatformException, ServiceBrokerException {
 
         Map<String, Object> credentials = new HashMap<>();
 
-        String topics="*:ALL";
         List<String> brokers = new LinkedList<>();
         List<String> zookeepers = new LinkedList<>();
+
+
+        Map<String,Object> permissions= (Map<String, Object>) serviceInstanceBindingRequest.getParameters().get("acl");
+
+        if (permissions != null) {
+            permissions = (Map<String, Object>) permissions.get("permissons");
+        }
+        if (permissions == null) {
+            permissions = new HashMap<String, Object>();
+            List<Object> topics = new ArrayList<Object>(1);
+            Map <String,Object> allTopics = new HashMap<String, Object>();
+            List<String> rights = new ArrayList<String>(1);
+            allTopics.put("name","*");
+            allTopics.put("rights",rights);
+            rights.add("ALL");
+            topics.add(allTopics);
+            permissions.put("topics",topics);
+        }
+        credhubClient.createUser(serviceInstance, bindingId);
+
+        String username = credhubClient.getUser(serviceInstance, bindingId).getUsername();
+        String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
 
         serviceInstance.getHosts().forEach(instance -> {
             if (instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT_SSL || instance.getPort() == KafkaBoshPlatformService.KAFKA_PORT) {
@@ -70,22 +98,26 @@ public class KafkaBindingService extends BindingServiceImpl {
             }
         });
 
-        ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) serviceInstanceBindingRequest.getParameters().get("topics");
-
-        if(topicMap!=null) {
-            topics = String.join(";", topicMap.stream().map(topic -> {
-                return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
-            }).collect(Collectors.toList()));
-        }
-        credhubClient.createUser(serviceInstance, bindingId);
-
-        String username = credhubClient.getUser(serviceInstance, bindingId).getUsername();
-        String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
-
         try {
-            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password,topics);
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password,"");
         } catch (Exception e) {
             e.printStackTrace();
+            throw new PlatformException("Can not create user");
+        }
+
+
+        KafkaAdminTools adminTools = null;
+        try {
+            adminTools = new KafkaAdminTools(serviceInstance.getHosts(), true, "admin", credhubClient.getPassword(serviceInstance, "admin_password"));
+            //adminTools.createUser(username, password);
+            adminTools.createAcl(username,permissions);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new ServiceBrokerException("Problem with create User");
+        }finally {
+            if (adminTools!=null) {
+                adminTools.clean();
+            }
         }
 
         Manifest manifest = null;
@@ -114,20 +146,29 @@ public class KafkaBindingService extends BindingServiceImpl {
     }
 
     @Override
-    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) {
+    protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) throws PlatformException, ServiceBrokerException {
         ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) binding.getParameters().get("topics");
 
-        String topics = "*:ALL";
-        if( topicMap!=null ) {
-            topics=String.join(";", topicMap.stream().map(topic -> {
-                return topic.get("name") + ":" + String.join(",", (ArrayList<String>) topic.get("rights"));
-            }).collect(Collectors.toList()));
-        }
+
+        KafkaAdminTools adminTools = null;
         try {
-            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(),topics);
+            adminTools = new KafkaAdminTools(serviceInstance.getHosts(),true,"admin",credhubClient.getPassword(serviceInstance,"admin_password"));
+            adminTools.deleteAcl(binding.getId());
+            //adminTools.deleteUser(binding.getId());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new ServiceBrokerException("Problem with delete User");
+        }finally {
+            adminTools.clean();
+        }
+
+        try {
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(),"");
         } catch (Exception e) {
             e.printStackTrace();
+            throw new PlatformException("Can not delete user");
         }
+        
         credhubClient.deleteCredentials(serviceInstance.getId(), binding.getId());
     }
 

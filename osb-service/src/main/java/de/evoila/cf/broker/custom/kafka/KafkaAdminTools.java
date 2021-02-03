@@ -1,17 +1,15 @@
 package de.evoila.cf.broker.custom.kafka;
 
 import de.evoila.cf.broker.exception.PlatformException;
+import de.evoila.cf.broker.exception.ServiceBrokerException;
 import de.evoila.cf.broker.model.catalog.ServerAddress;
-import kafka.Kafka;
+import de.evoila.cf.cpi.bosh.KafkaBoshPlatformService;
 import kafka.server.ConfigType;
 import kafka.zk.AdminZkClient;
 import kafka.zk.KafkaZkClient;
-import org.apache.kafka.clients.KafkaClient;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.clients.admin.internals.AdminMetadataManager;
 import org.apache.kafka.common.acl.*;
-import org.apache.kafka.common.message.CreateAclsRequestData;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourceFilter;
 import org.apache.kafka.common.resource.ResourcePattern;
@@ -20,15 +18,29 @@ import org.apache.kafka.common.security.scram.ScramCredential;
 import org.apache.kafka.common.security.scram.internals.ScramCredentialUtils;
 import org.apache.kafka.common.security.scram.internals.ScramFormatter;
 import org.apache.kafka.common.security.scram.internals.ScramMechanism;
-import org.apache.kafka.common.utils.LogContext;
 import org.apache.kafka.common.utils.Time;
 import org.apache.zookeeper.client.ZKClientConfig;
-import kafka.Kafka.*;
+import org.apache.zookeeper.client.ZooKeeperSaslClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 
-import java.security.acl.Acl;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+
+/**
+ * @author Patrick Weber.
+ *
+ * Importent !!!!!
+ * Not Working because Sasl Jaas conifg not accepted by Zookeper and Kafka Client
+ */
+
 
 public class KafkaAdminTools {
 
@@ -37,31 +49,49 @@ public class KafkaAdminTools {
     boolean secure;
     String username;
     String password;
+    String fileName;
+    BufferedWriter jaas;
 
-    void KafkaAdminTools(List<ServerAddress> serverAddresses, int kafkaPort, int zookeeperPort, boolean secure, String username, String password){
+
+    private Logger log = LoggerFactory.getLogger(KafkaAdminTools.class);
+
+
+    KafkaAdminTools(List<ServerAddress> serverAddresses, boolean secure, String username, String password) throws IOException, ServiceBrokerException {
+        throw new ServiceBrokerException("Class not working beclause Sasl problems");
         this.secure = secure;
         this.username = username;
         this.password = password;
         serverAddresses.stream().forEach(server ->{
-            if (server.getPort() == kafkaPort) {
+            if (server.getPort() == KafkaBoshPlatformService.KAFKA_PORT || server.getPort() == KafkaBoshPlatformService.KAFKA_PORT_SSL) {
                 kafka.add(server);
             } else {
                 zookeeper.add(server);
             }
         });
+        this.fileName =
+        System.setProperty("java.security.auth.login.config","/tmp/kafka-" + UUID.randomUUID().toString());
+        this.jaas = new BufferedWriter(new FileWriter(System.getProperty("java.security.auth.login.config"), true));
+        jaas.write("Client {\n" + 
+                "security.protocol=SASL_SSL\n" +
+                "ssl.truststore.password=kafka-sec\n" +
+                "sasl.mechanism=SCRAM-SHA-256\n" +
+                "sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + this.username + "\"  password=\"" + this.password + "\" ;\n" +
+                "}\n");
+        jaas.flush();
+
     }
 
-    void createUser(String username, String password) throws PlatformException {
+    void createUser(String username, String password) throws PlatformException, NoSuchAlgorithmException, ServiceBrokerException {
         boolean success = false;
         ZKClientConfig zkClientConfig = new ZKClientConfig();
         if (secure) {
-            zkClientConfig.setProperty("org.apache.kafka.common.security.plain.PlainLoginModule","required");
-            zkClientConfig.setProperty("username",this.username);
-            zkClientConfig.setProperty("password",this.password);
-            zkClientConfig.setProperty("admin_user",this.password);
+            zkClientConfig.setProperty(ZKClientConfig.ENABLE_CLIENT_SASL_KEY,"true");
+            zkClientConfig.setProperty(ZKClientConfig.ZK_SASL_CLIENT_USERNAME,"admin");
+            zkClientConfig.setProperty(ZKClientConfig.SECURE_CLIENT,"true");
+
         }
         for (ServerAddress server: zookeeper) {
-            KafkaZkClient zkClient = KafkaZkClient.apply(server.getIp()+":"+server.getPort(), secure, 10000, 5000,10, Time.SYSTEM,"admin","osb",null,Option.apply());
+            KafkaZkClient zkClient = KafkaZkClient.apply(server.getIp()+":"+server.getPort(), false, 10000, 5000,10, Time.SYSTEM,"admin","osb",null,Option.apply(zkClientConfig));
             if (zkClient == null){
                 continue;
             }
@@ -69,7 +99,7 @@ public class KafkaAdminTools {
             if (adminZkClient != null) {
                 HashMap<String, String> userProp = new HashMap<>();
                 ScramCredential scramCredential = new ScramFormatter(ScramMechanism.SCRAM_SHA_256).generateCredential(password, 4096);
-                userProp.put("userSecureSchema", ScramCredentialUtils.credentialToString(scramCredential));
+                userProp.put("SCRAM-SHA-256", ScramCredentialUtils.credentialToString(scramCredential));
                 Properties configs = adminZkClient.fetchEntityConfig(ConfigType.User(), username);
                 configs.putAll(userProp);
                 adminZkClient.changeConfigs(ConfigType.User(), username, configs);
@@ -85,13 +115,10 @@ public class KafkaAdminTools {
         boolean success = false;
         ZKClientConfig zkClientConfig = new ZKClientConfig();
         if (secure) {
-            zkClientConfig.setProperty("org.apache.kafka.common.security.plain.PlainLoginModule","required");
-            zkClientConfig.setProperty("username",this.username);
-            zkClientConfig.setProperty("password",this.password);
-            zkClientConfig.setProperty("admin_user",this.password);
+            zkClientConfig.setProperty(ZKClientConfig.LOGIN_CONTEXT_NAME_KEY_DEFAULT,"org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" +this.username  + "\" password=\"" + this.password +"\"admin_user=\""+this.password+"\";");
         }
         for (ServerAddress server: zookeeper) {
-            KafkaZkClient zkClient = KafkaZkClient.apply(server.getIp()+":"+server.getPort(), secure, 10000, 5000,10, Time.SYSTEM,"admin","osb",null,Option.apply());
+            KafkaZkClient zkClient = KafkaZkClient.apply(server.getIp()+":"+server.getPort(), secure, 10000, 5000,10, Time.SYSTEM,"admin","osb",null,Option.apply(zkClientConfig));
             if (zkClient == null){
                 continue;
             }
@@ -107,7 +134,7 @@ public class KafkaAdminTools {
         }
     }
 
-    void createAcl(String username, Map<String,Object> premissions) throws PlatformException {
+    void createAcl(String username, Map<String,Object> permissions) throws PlatformException {
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", kafka.stream().map(server -> {
             return server.getIp() + ":" + server.getPort();
@@ -117,17 +144,20 @@ public class KafkaAdminTools {
         if (secure) {
             properties.put("security.protocol", "SASL_SSL");
             properties.put("sasl.mechanism", "SCRAM-SHA-256");
-            properties.put("sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\"  password=\"" + password + "\";");
+            properties.put("listener.name.sasl_ssl.scram-sha-256.sasl..jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\"  password=\"" + password + "\" ;");
         }
         AdminClient kafkaAdminClient = KafkaAdminClient.create(properties);
         if (kafkaAdminClient != null){
             throw  new PlatformException("Can not connect to Kafka");
         }
         ArrayList<AclBinding> aclBindings = new ArrayList<AclBinding>();
-        premissions.forEach((type, value) -> {
+        log.error("permissons"+ permissions + " " + permissions.size());
+        permissions.forEach((type, value) -> {
+            log.error("ResourceType("+type+")");
             Map<String, Object> map = (Map<String, Object>) value;
             String name = (String) map.get("name");
             ((ArrayList<String>) map.get("rights")).forEach(right -> {
+                log.error("ResourceType("+type+"): "+ ResourceType.fromString(type) + ";Resourece("+name+"):" + PatternType.fromString(name)+ ";Rights("+right+"):"+AclOperation.fromString(right));
                 aclBindings.add(new AclBinding(new ResourcePattern(ResourceType.fromString(type), "*", PatternType.fromString(name)), new AccessControlEntry(username, "*", AclOperation.fromString(right), AclPermissionType.ALLOW)));
             });
         });
@@ -150,15 +180,21 @@ public class KafkaAdminTools {
             properties.put("sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\"  password=\"" + password + "\";");
         }
         AdminClient kafkaAdminClient = KafkaAdminClient.create(properties);
-        if (kafkaAdminClient != null){
-            throw  new PlatformException("Can not connect to Kafka");
+        if (kafkaAdminClient != null) {
+            throw new PlatformException("Can not connect to Kafka");
         }
 
-        ArrayList<AclBindingFilter> aclBindingFilters= new ArrayList<AclBindingFilter>(1);
-        aclBindingFilters.add(new AclBindingFilter(new ResourceFilter(ResourceType.ANY,"*"),new AccessControlEntryFilter(username,"*",AclOperation.ANY,AclPermissionType.ANY)));
+        ArrayList<AclBindingFilter> aclBindingFilters = new ArrayList<AclBindingFilter>(1);
+        aclBindingFilters.add(new AclBindingFilter(new ResourceFilter(ResourceType.ANY, "*"), new AccessControlEntryFilter(username, "*", AclOperation.ANY, AclPermissionType.ANY)));
 
-        if (!kafkaAdminClient.deleteAcls(aclBindingFilters).all().isDone()){
+        if (!kafkaAdminClient.deleteAcls(aclBindingFilters).all().isDone()) {
             throw new PlatformException("Can not create ACL");
         }
     }
+
+    void clean(){ 
+        new File(System.getProperty("java.security.auth.login.config")).delete();
+
+    }
 }
+
