@@ -8,14 +8,17 @@ import de.evoila.cf.broker.model.credential.PasswordCredential;
 import de.evoila.cf.broker.util.MapUtils;
 import de.evoila.cf.cpi.CredentialConstants;
 import de.evoila.cf.cpi.bosh.deployment.DeploymentManager;
+import de.evoila.cf.cpi.bosh.deployment.manifest.InstanceGroup;
 import de.evoila.cf.cpi.bosh.deployment.manifest.Manifest;
 import de.evoila.cf.security.credentials.CredentialStore;
 import org.springframework.core.env.Environment;
 import org.springframework.credhub.support.certificate.CertificateParameters;
 import org.springframework.credhub.support.certificate.ExtendedKeyUsage;
 
+import javax.swing.text.html.Option;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class KafkaDeploymentManager extends DeploymentManager {
 
@@ -80,13 +83,18 @@ public class KafkaDeploymentManager extends DeploymentManager {
     }
 
     private Map<String, Object> manifestProperties(String instanceGroup, Manifest manifest) {
-        return manifest
+        Optional<InstanceGroup> optionalInstanceGroup = manifest
                 .getInstanceGroups()
                 .stream()
                 .filter(i -> {
                     if (i.getName().equals(instanceGroup))
                         return true;
                     return false;
-                }).findFirst().get().getProperties();
+                }).findFirst();
+        if (optionalInstanceGroup.isPresent()){
+                return optionalInstanceGroup.get().getProperties();
+        } else {
+            return null;
+        }
     }
 }

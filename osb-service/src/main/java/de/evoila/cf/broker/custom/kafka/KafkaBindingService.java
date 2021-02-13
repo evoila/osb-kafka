@@ -61,7 +61,7 @@ public class KafkaBindingService extends BindingServiceImpl {
         Map<String, Object> credentials = new HashMap<>();
 
         String topics="*:ALL";
-        String groups="*:AALL";
+        String groups="*:ALL";
         String cluster="";
         List<String> brokers = new LinkedList<>();
         List<String> zookeepers = new LinkedList<>();

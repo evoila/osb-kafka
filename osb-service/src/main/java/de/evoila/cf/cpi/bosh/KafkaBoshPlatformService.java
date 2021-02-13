@@ -32,11 +32,10 @@ import rx.Observable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnBean(BoshProperties.class)
@@ -63,9 +62,38 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         this.objectMapper = new ObjectMapper(new YAMLFactory());
     }
 
-    public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> errands) throws PlatformException {
-        Task task = boshClient.client().errands().runErrand(deployment.getName(), "kafka-smoke-test").toBlocking().first();
-        waitForTaskCompletion(task, Instant.now().plusSeconds(1800));
+
+    public void runUpdateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> oErrands) throws PlatformException {
+        runCreateErrands(instance,plan, deployment, oErrands);
+    }
+    
+    public void runCreateErrands(ServiceInstance instance, Plan plan, Deployment deployment, Observable<List<ErrandSummary>> oErrands) throws PlatformException {
+        Map<String, Object> kafka = (Map<String, Object>) instance.getParameters().get("kafka");
+
+        if (kafka != null) {
+            ArrayList<String> runErrands = (ArrayList<String>) kafka.get("errands");
+            if (runErrands != null) {
+                List<String> errands = oErrands.toBlocking().first().stream()
+                        .map(errand -> {
+                            return errand.getName();
+                        })
+                        .filter(errand -> {
+                            return runErrands.contains(errand);
+                        }).collect(Collectors.toList());
+
+                if (errands.size() != runErrands.size()) {
+                    throw new PlatformException("Errand should run not exist");
+                }
+
+                for (String errand : errands) {
+                    Task task = boshClient.client().errands().runErrand(deployment.getName(), errand).toBlocking().first();
+                    waitForTaskCompletion(task, Instant.now().plusSeconds(1800));
+                    if ( !task.getState().equals("done") || task.getResult() == null || task.equals("done")) {
+                        throw new PlatformException("Errand " + errand + " failed");
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -86,7 +114,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                     e.printStackTrace();
                 }
 
-                if(isKafkaSecure(manifest)) {
+                if (isKafkaSecure(manifest)) {
                     serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT_SSL);
                 } else {
                     serverAddress = new ServerAddress("Kafka-" + vm.getIndex(), vm.getIps().get(0), KAFKA_PORT);
@@ -132,7 +160,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .filter(i -> i.getName().equals("kafka"))
                 .findAny();
 
-        if(group.isPresent()) {
+        if (group.isPresent()) {
             createKafkaUser(serviceInstance, group.get(), username, password, topic, groups, cluster);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
@@ -167,7 +195,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .filter(i -> i.getName().equals("kafka"))
                 .findAny();
 
-        if(group.isPresent()) {
+        if (group.isPresent()) {
             deleteKafkaUser(serviceInstance, group.get(), username, topics, groups, cluster);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
@@ -185,7 +213,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh '%s' '%s' '%s' '%s'", username,topics, groups, cluster)
+                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh '%s' '%s' '%s' '%s'", username, topics, groups, cluster)
         );
 
         executeCommands(channel, commands);
@@ -203,24 +231,24 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
             readChannelOutput(channel);
             log.info("Finished sending commands!");
 
-        } catch(Exception e) {
-            log.info("An error ocurred during executeCommands: "+e);
+        } catch (Exception e) {
+            log.info("An error ocurred during executeCommands: " + e);
         }
     }
 
-    private void sendCommands(Channel channel, List<String> commands){
+    private void sendCommands(Channel channel, List<String> commands) {
         try {
             PrintStream out = new PrintStream(channel.getOutputStream());
 
             out.println("#!/bin/bash");
-            for(String command : commands) {
+            for (String command : commands) {
                 out.println(command);
             }
             out.println("exit");
 
             out.flush();
-        } catch(Exception e) {
-            log.info("Error while sending commands: "+ e);
+        } catch (Exception e) {
+            log.info("Error while sending commands: " + e);
         }
 
     }
@@ -241,7 +269,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                     log.info(line);
                 }
 
-                if(line.contains("logout")) {
+                if (line.contains("logout")) {
                     break;
                 }
 
@@ -250,10 +278,11 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 }
                 try {
                     Thread.sleep(1000);
-                } catch (Exception ee){}
+                } catch (Exception ee) {
+                }
             }
-        } catch(Exception e) {
-            log.info("Error while reading channel output: "+ e);
+        } catch (Exception e) {
+            log.info("Error while reading channel output: " + e);
         }
     }
 
