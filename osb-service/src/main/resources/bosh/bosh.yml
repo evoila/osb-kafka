@@ -80,8 +80,8 @@ instance_groups:
   properties:
     kafka:
       logging:
-        log_level: INFO
-        max_file_size: 10MB
+        log_level: "INFO"
+        max_file_size: "10MB"
         max_backup_index: 9
       security:
         setup_secure_client_connection: true
