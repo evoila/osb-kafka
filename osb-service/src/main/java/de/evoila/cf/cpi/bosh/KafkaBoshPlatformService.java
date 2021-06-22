@@ -151,7 +151,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         return (Boolean) kafkaSecurityProperties.get(SECURE_CLIENT);
     }
 
-    public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password, String topic, String groups, String cluster)
+    public void createKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String password)
             throws IOException, InstanceGroupNotFoundException, JSchException {
         Manifest manifest = super.getDeployedManifest(serviceInstance);
 
@@ -161,14 +161,15 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .findAny();
 
         if (group.isPresent()) {
-            createKafkaUser(serviceInstance, group.get(), username, password, topic, groups, cluster);
+            //createKafkaUser(serviceInstance, group.get(), username, password, topic, groups, cluster);
+            createKafkaUser(serviceInstance, group.get(), username, password);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
         }
     }
 
     private void createKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username,
-                                 String password, String topics, String groups, String cluster) throws JSchException {
+                                 String password) throws JSchException {
 
         Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
@@ -179,7 +180,8 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh '%s' '%s' '%s' '%s' '%s'", username, password, topics, groups, cluster)
+                //String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh '%s' '%s' '%s' '%s' '%s'", username, password, topics, groups, cluster)
+                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh '%s' '%s' '%s' '%s' '%s'", username, password)
         );
 
         executeCommands(channel, commands);
@@ -187,7 +189,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         close(channel, sshSession);
     }
 
-    public void deleteKafkaUser(ServiceInstance serviceInstance, Plan plan, String username, String topics, String groups, String cluster) throws IOException, InstanceGroupNotFoundException, JSchException {
+    public void deleteKafkaUser(ServiceInstance serviceInstance, Plan plan, String username) throws IOException, InstanceGroupNotFoundException, JSchException {
         Manifest manifest = super.getDeployedManifest(serviceInstance);
 
         Optional<InstanceGroup> group = manifest.getInstanceGroups()
@@ -196,14 +198,14 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                 .findAny();
 
         if (group.isPresent()) {
-            deleteKafkaUser(serviceInstance, group.get(), username, topics, groups, cluster);
+            //deleteKafkaUser(serviceInstance, group.get(), username, topics, groups, cluster);
+            deleteKafkaUser(serviceInstance, group.get(), username);
         } else {
             throw new InstanceGroupNotFoundException(serviceInstance, manifest, group.get().getName());
         }
     }
 
-    private void deleteKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username, String topics,
-                                 String groups, String cluster) throws JSchException {
+    private void deleteKafkaUser(ServiceInstance instance, InstanceGroup instanceGroup, String username) throws JSchException {
         Session sshSession = getSshSession(instance, instanceGroup.getName(), 0)
                 .toBlocking()
                 .first();
@@ -213,7 +215,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh '%s' '%s' '%s' '%s'", username, topics, groups, cluster)
+                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh '%s' '%s' '%s' '%s'", username)
         );
 
         executeCommands(channel, commands);

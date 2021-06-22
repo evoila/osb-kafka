@@ -60,9 +60,9 @@ public class KafkaBindingService extends BindingServiceImpl {
 
         Map<String, Object> credentials = new HashMap<>();
 
-        String topics="*:ALL";
+        /*String topics="*:ALL";
         String groups="*:ALL";
-        String cluster="";
+        String cluster="";*/
         List<String> brokers = new LinkedList<>();
         List<String> zookeepers = new LinkedList<>();
 
@@ -74,7 +74,7 @@ public class KafkaBindingService extends BindingServiceImpl {
             }
         });
 
-        ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) serviceInstanceBindingRequest.getParameters().get("topics");
+        /*ArrayList<Map<String,Object>> topicMap = (ArrayList<Map<String, Object>>) serviceInstanceBindingRequest.getParameters().get("topics");
 
         if(topicMap!=null) {
             topics = String.join(";", topicMap.stream().map(topic -> {
@@ -96,7 +96,7 @@ public class KafkaBindingService extends BindingServiceImpl {
 
         if(clusterArray!=null) {
             cluster = String.join(",", clusterArray);
-        }
+        }*/
 
         credhubClient.createUser(serviceInstance, bindingId);
 
@@ -104,7 +104,8 @@ public class KafkaBindingService extends BindingServiceImpl {
         String password = credhubClient.getUser(serviceInstance, bindingId).getPassword();
 
         try {
-            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password, topics, groups, cluster);
+            //kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password, topics, groups, cluster);
+            kafkaBoshPlatformService.createKafkaUser(serviceInstance, plan, username, password);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -138,7 +139,7 @@ public class KafkaBindingService extends BindingServiceImpl {
     @Override
     protected void unbindService(ServiceInstanceBinding binding, ServiceInstance serviceInstance, Plan plan) throws PlatformException {
 
-        String topics="*:ALL";
+        /*String topics="*:ALL";
         String groups="*:AALL";
         String cluster="";
 
@@ -162,10 +163,11 @@ public class KafkaBindingService extends BindingServiceImpl {
 
         if(clusterArray!=null) {
                 cluster = String.join(",", clusterArray);
-        }
+        }*/
         
         try {
-            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(), topics, groups, cluster);
+            //kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername(), topics, groups, cluster);
+            kafkaBoshPlatformService.deleteKafkaUser(serviceInstance, plan, credhubClient.getUser(serviceInstance, binding.getId()).getUsername());
         } catch (Exception e) {
             e.printStackTrace();
             throw new PlatformException("Can not delete User");
