@@ -32,7 +32,6 @@ import rx.Observable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Array;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,7 +56,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
                              BoshProperties boshProperties, Optional<DashboardClient> dashboardClient, Environment environment, CredentialStore credentialStore) {
         super(repository, catalogService, availabilityVerifier,
                 boshProperties, dashboardClient,
-                new KafkaDeploymentManager(boshProperties, environment, credentialStore));
+                new KafkaDeploymentManager(boshProperties, environment));
         this.credentialStore = credentialStore;
         this.objectMapper = new ObjectMapper(new YAMLFactory());
     }
