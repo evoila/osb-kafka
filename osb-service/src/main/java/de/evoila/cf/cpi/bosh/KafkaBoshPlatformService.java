@@ -214,7 +214,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
         channel.connect();
 
         List<String> commands = Arrays.asList(
-                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh '%s' '%s' '%s' '%s'", username)
+                String.format("sudo /var/vcap/jobs/kafka/bin/remove_user.sh %s", username)
         );
 
         executeCommands(channel, commands);
