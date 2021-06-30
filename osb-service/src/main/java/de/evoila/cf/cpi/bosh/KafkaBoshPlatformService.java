@@ -180,7 +180,7 @@ public class KafkaBoshPlatformService extends BoshPlatformService {
 
         List<String> commands = Arrays.asList(
                 //String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh '%s' '%s' '%s' '%s' '%s'", username, password, topics, groups, cluster)
-                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh '%s' '%s' '%s' '%s' '%s'", username, password)
+                String.format("sudo /var/vcap/jobs/kafka/bin/add_user.sh %s %s", username, password)
         );
 
         executeCommands(channel, commands);
